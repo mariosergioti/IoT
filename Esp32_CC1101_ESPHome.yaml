@@ -1,0 +1,246 @@
+esphome:
+  name: central-sala
+  friendly_name: Central da Sala
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Habilita logging
+logger:
+  level: DEBUG
+  logs:
+    remote.raw: INFO
+    remote.rc_switch: INFO
+
+# Configuração WiFi
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  
+  # Hotspot de fallback
+  ap:
+    ssid: "Central Fallback"
+    password: !secret ap_password
+
+# Captive portal para facilitar configuração
+captive_portal:
+
+# API do Home Assistant
+api:
+  encryption:
+    key: !secret api_key
+
+# OTA Updates
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# Configuração SPI para o CC1101
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+# Configuração do CC1101
+cc1101:
+  cs_pin: GPIO5
+  frequency: 433.92MHz
+
+# Transmissor RF (usa GDO0)
+remote_transmitter:
+  pin: GPIO4
+  carrier_duty_percent: 100%
+  id: my_transmitter
+  on_transmit:
+    then:
+      - cc1101.begin_tx
+  on_complete:
+    then:
+      - cc1101.begin_rx
+
+# Receptor RF (usa GDO2)
+remote_receiver:
+  pin: GPIO2
+  id: my_receiver
+  dump: 
+    - rc_switch
+    - raw
+  tolerance: 25%
+  filter: 100us
+  idle: 4ms
+  buffer_size: 10kb
+
+# Status da conexão WiFi
+binary_sensor:
+  - platform: status
+    name: "Status Conexão"
+
+# Sensor de WiFi Signal
+sensor:
+  - platform: wifi_signal
+    name: "Sinal WiFi"
+    update_interval: 60s
+
+# Informações do dispositivo
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "Endereço IP"
+    ssid:
+      name: "SSID Conectado"
+
+button:
+# ========================================
+# BOTÕES DO VENTILADOR ARNO ULTIMATE
+# ========================================
+  # Energia (Liga/Desliga)
+  - platform: template
+    name: "Ventilador: Energia"
+    icon: mdi:power
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -360, 1620, -1400, 580, -360, 1620, -1400, 580, -360, 1620]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Ventilador - Energia acionada!"
+
+  # Lâmpada
+  - platform: template
+    name: "Ventilador: Lâmpada"
+    icon: mdi:lightbulb
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -360, 1620, -1400, 580, -360, 1620, -1400, 580, -360, 1620, -1400, 580]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Lâmpada acionada!"
+
+  # Menos Velocidade (-)
+  - platform: template
+    name: "Ventilador: Menos Velocidade"
+    icon: mdi:fan-minus
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -360, 1620, -360, 1620]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Menos velocidade acionada!"
+
+  # Mais Velocidade (+)
+  - platform: template
+    name: "Ventilador: Mais Velocidade"
+    icon: mdi:fan-plus
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -360, 1620, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Mais velocidade acionada!"
+
+  # Dormir (Sleep)
+  - platform: template
+    name: "Ventilador: Modo Dormir"
+    icon: mdi:sleep
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -1400, 580, -1400, 580]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Modo Dormir acionado!"
+
+  # Timer
+  - platform: template
+    name: "Ventilador: Timer"
+    icon: mdi:timer
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -1400, 580, -1400, 580, -360, 1620, -360, 1620]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Timer acionado!"
+
+  # Direção (Oscilação)
+  - platform: template
+    name: "Ventilador: Mudar Direção"
+    icon: mdi:swap-horizontal
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -900, 1080, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -1400, 580, -1400, 580, -360, 1620, -1400, 580, -1400, 580, -360, 1620, -360, 1620, -1400, 580, -1400, 580, -360, 1620]
+          repeat:
+            times: 8
+            wait_time: 20ms
+      - logger.log: "Direção alterada!"
+
+# ========================================
+# BOTÕES DO PORTÃO ELETRÔNICO
+# ========================================
+
+  # Abrir (Botão A)
+  - platform: template
+    name: "Portão: Abrir"
+    icon: mdi:gate-open
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [...]
+          repeat:
+            times: 15
+            wait_time: 20ms
+      - logger.log: "Portão: Comando ABRIR enviado!"
+
+  # Pausar (Botão B)
+  - platform: template
+    name: "Portão: Pausar"
+    icon: mdi:pause-octagon
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [...]
+          repeat:
+            times: 15
+            wait_time: 20ms
+      - logger.log: "Portão: Comando PAUSAR enviado!"
+
+  # Fechar (Botão C)
+  - platform: template
+    name: "Portão: Fechar"
+    icon: mdi:gate-arrow-right
+    on_press:
+      - remote_transmitter.transmit_raw:
+          carrier_frequency: 0Hz
+          code: [...]
+          repeat:
+            times: 15
+            wait_time: 20ms
+      - logger.log: "Portão: Comando FECHAR enviado!"
+
+# ========================================
+# BOTÕES DE TESTE (Mantidos)
+# ========================================
+
+  - platform: template
+    name: "Z Teste: Transmissão RF"
+    icon: mdi:radio-tower
+    on_press:
+      - remote_transmitter.transmit_rc_switch_raw:
+          code: '001111000011'
+          protocol: 1
+          repeat:
+            times: 5
+            wait_time: 10ms
+      - logger.log: "Sinal de teste transmitido!"
